@@ -6,7 +6,6 @@ def hash_password(contrasena):
     return hashlib.sha256(contrasena.encode()).hexdigest()
 
 def registrar(nombre_usuario, gmail, contrasena, rol="mesero"):
-    # (Esta función está bien, pero no se usa en la UI actual)
     conexion = crear_conexion()
     if not conexion:
         return False
@@ -29,15 +28,14 @@ def registrar(nombre_usuario, gmail, contrasena, rol="mesero"):
 
 def iniciar_sesion(gmail, contrasena):
     """
-    (MODIFICADO)
     Verifica correo y contraseña.
-    Devuelve todos los datos del usuario (id, nombre, gmail, rol).
+    Devuelve diccionario con datos del usuario.
     """
     conexion = crear_conexion()
     if not conexion:
         return None
     try:
-        # (CORREGIDO) La contraseña 'admin123' debe ser hasheada para compararla
+        
         contrasena_hash = hash_password(contrasena) 
         
         sql = "SELECT id_usuario, usuario, gmail, rol FROM usuarios WHERE gmail=%s AND password_hash=%s"
@@ -52,6 +50,6 @@ def iniciar_sesion(gmail, contrasena):
         print(f"❌ Error al iniciar sesión: {e}")
         return None
     finally:
-        if conexion.is_connected():
+        if conexion and conexion.is_connected():
             cursor.close()
             conexion.close()

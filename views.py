@@ -3,523 +3,447 @@ from tkinter import messagebox
 import autenticacion
 import restaurante
 
-# (Definición de colores igual)
-COLOR_FONDO_ROJO = "#C00000"
-COLOR_BOTON_ROSA = "#E57373"
-COLOR_CAMPO_GRIS = "#F0F0F0"
-COLOR_TEXTO = "#333333"
-COLOR_TEXTO_BLANCO = "#FFFFFF"
 
-# (Definición de fuentes igual)
-FONT_TITULO = ("Arial", 30, "bold")
-FONT_SUBTITULO = ("Arial", 22, "bold")
-FONT_BOTON = ("Arial", 16, "bold")
-FONT_TEXTO = ("Arial", 16)
-FONT_PEDIDO_HEADER = ("Courier", 18, "bold")
-FONT_PEDIDO_BODY = ("Courier", 16)
+class Theme:
+    RED_PRIMARY = "#B71C1C"       # Rojo oscuro elegante
+    RED_HOVER = "#D32F2F"         # Rojo más vivo para hover
+    BG_MAIN = "#F5F5F5"           # Fondo gris muy claro
+    BG_CARD = "#FFFFFF"           # Blanco puro
+    TEXT_DARK = "#212121"         # Negro suave
+    TEXT_LIGHT = "#FFFFFF"        # Blanco
+    GRAY_LIGHT = "#E0E0E0"        # Bordes
+    GRAY_HOVER = "#BDBDBD"
+    
+    
+    STATUS_PENDING = "#FF9800"    # Naranja
+    STATUS_READY = "#4CAF50"      # Verde
+    
+    # Fuentes
+    FONT_TITLE = ("Roboto Medium", 28)
+    FONT_SUBTITLE = ("Roboto", 20)
+    FONT_BUTTON = ("Roboto", 14, "bold")
+    FONT_TEXT = ("Roboto", 14)
+    FONT_SMALL = ("Roboto", 12)
 
 
-# (MODIFICADO) Ahora es un CTkScrollableFrame
-class LoginFrame(ctk.CTkScrollableFrame):
+# 2. Para scroll y layout
+class BaseScrollablePage(ctk.CTkFrame):
+    def __init__(self, master, title_text="Título", **kwargs):
+        super().__init__(master, fg_color=Theme.BG_MAIN, **kwargs)
+        
+        # Header
+        self.header = ctk.CTkFrame(self, fg_color=Theme.RED_PRIMARY, height=70, corner_radius=0)
+        self.header.pack(fill="x", side="top")
+        
+        self.title_label = ctk.CTkLabel(
+            self.header, 
+            text=title_text.upper(), 
+            font=Theme.FONT_TITLE,
+            text_color=Theme.TEXT_LIGHT
+        )
+        self.title_label.pack(pady=20)
+
+        # Scroll
+        self.scroll_content = ctk.CTkScrollableFrame(
+            self, 
+            fg_color="transparent",
+            corner_radius=0
+        )
+        self.scroll_content.pack(fill="both", expand=True, padx=20, pady=20)
+
+
+# LOGIN FRAME
+
+class LoginFrame(ctk.CTkFrame):
     def __init__(self, master, app_instance, **kwargs): 
-        super().__init__(master, fg_color=COLOR_FONDO_ROJO)
+        super().__init__(master, fg_color=Theme.RED_PRIMARY)
         self.app = app_instance
 
+       
+        card = ctk.CTkFrame(self, fg_color=Theme.BG_CARD, corner_radius=20, width=400)
+        card.place(relx=0.5, rely=0.5, anchor="center")
+
         if self.app.logo_image:
-            logo_label = ctk.CTkLabel(self, image=self.app.logo_image, text="")
-            logo_label.pack(pady=(80, 20)) 
+            logo_label = ctk.CTkLabel(card, image=self.app.logo_image, text="")
+            logo_label.pack(pady=(30, 10))
 
-        title_label = ctk.CTkLabel(self, text="INICIO DE SESION", 
-                                   font=FONT_TITULO,
-                                   text_color=COLOR_TEXTO_BLANCO)
-        title_label.pack(pady=20)
+        ctk.CTkLabel(card, text="BIENVENIDO", font=Theme.FONT_TITLE, text_color=Theme.RED_PRIMARY).pack(pady=10)
+        ctk.CTkLabel(card, text="Inicie sesión para continuar", font=Theme.FONT_SMALL, text_color="gray").pack(pady=(0, 20))
 
-        self.entry_correo = ctk.CTkEntry(self, placeholder_text="Correo:", 
-                                         width=400, height=50, 
-                                         fg_color=COLOR_CAMPO_GRIS,
-                                         border_width=0,
-                                         text_color=COLOR_TEXTO,
-                                         font=FONT_TEXTO,
-                                         placeholder_text_color=COLOR_TEXTO)
+        self.entry_correo = ctk.CTkEntry(card, placeholder_text="Correo Electrónico", width=300, height=45, font=Theme.FONT_TEXT)
         self.entry_correo.pack(pady=10)
-        self.entry_correo.insert(0, "admin@correo.com")
+        
 
-        self.entry_pass = ctk.CTkEntry(self, placeholder_text="Contraseña:", 
-                                       show="*", width=400, height=50,
-                                       fg_color=COLOR_CAMPO_GRIS,
-                                       border_width=0,
-                                       font=FONT_TEXTO,
-                                       text_color=COLOR_TEXTO,
-                                       placeholder_text_color=COLOR_TEXTO)
+        self.entry_pass = ctk.CTkEntry(card, placeholder_text="Contraseña", show="*", width=300, height=45, font=Theme.FONT_TEXT)
         self.entry_pass.pack(pady=10)
-        self.entry_pass.insert(0, "admin123")
+        
 
-        btn_login = ctk.CTkButton(self, text="INICIAR SESIÓN", 
-                                  command=self.intentar_login,
-                                  width=400, height=50,
-                                  font=FONT_BOTON,
-                                  fg_color=COLOR_BOTON_ROSA,
-                                  hover_color="#D32F2F",
-                                  text_color=COLOR_TEXTO_BLANCO)
+        btn_login = ctk.CTkButton(
+            card, text="INGRESAR", command=self.intentar_login,
+            width=300, height=50, font=Theme.FONT_BUTTON,
+            fg_color=Theme.RED_PRIMARY, hover_color=Theme.RED_HOVER, corner_radius=10
+        )
         btn_login.pack(pady=30)
 
-    # (Lógica de intentar_login sin cambios)
     def intentar_login(self):
         gmail = self.entry_correo.get()
         password = self.entry_pass.get()
-
-        if not gmail or not password:
-            messagebox.showerror("Error", "Correo y contraseña son requeridos.")
-            return
-
         usuario = autenticacion.iniciar_sesion(gmail, password)
-        
         if usuario:
             self.app.login_exitoso(usuario) 
         else:
-            messagebox.showerror("Error", "Correo o contraseña incorrectos.")
+            messagebox.showerror("Error", "Credenciales incorrectas.")
 
 
-# (MODIFICADO) Ahora es un CTkScrollableFrame
-class MainFrame(ctk.CTkScrollableFrame):
+# MENÚ PRINCIPAL
+
+class MainFrame(ctk.CTkFrame):
     def __init__(self, master, app_instance, **kwargs):
-        super().__init__(master, fg_color=COLOR_FONDO_ROJO)
+        super().__init__(master, fg_color=Theme.BG_MAIN)
         self.app = app_instance
         
-        usuario_nombre = self.app.usuario_data.get('usuario', 'N/A')
-        usuario_rol = self.app.usuario_data.get('rol', 'mesero')
-
-        if self.app.logo_image:
-            logo_label = ctk.CTkLabel(self, image=self.app.logo_image, text="")
-            logo_label.pack(pady=(60, 10))
-
-        title_label = ctk.CTkLabel(self, text="MENU PRINCIPAL", 
-                                   font=FONT_TITULO,
-                                   text_color=COLOR_TEXTO_BLANCO)
-        title_label.pack(pady=10)
+        # Recuperar datos usuario
+        user = self.app.usuario_data.get('usuario', 'Usuario')
+        rol_raw = self.app.usuario_data.get('rol', 'mesero')
         
-        user_info_label = ctk.CTkLabel(self, text=f"Usuario: {usuario_nombre} ({usuario_rol})",
-                                       font=FONT_SUBTITULO,
-                                       text_color=COLOR_TEXTO_BLANCO)
-        user_info_label.pack(pady=(0, 20))
+        rol = rol_raw.strip().lower() if rol_raw else "mesero"
 
-        frame_botones = ctk.CTkFrame(self, fg_color="transparent")
-        frame_botones.pack(pady=20, fill="x", padx=300) 
+        # HEADER
+        header = ctk.CTkFrame(self, fg_color=Theme.RED_PRIMARY, height=80, corner_radius=0)
+        header.pack(fill="x", side="top")
+        
+        
+        ctk.CTkLabel(header, text=f"Hola, {user}", font=Theme.FONT_SUBTITLE, text_color=Theme.TEXT_LIGHT).pack(side="left", padx=30)
+        
+        ctk.CTkLabel(header, text=f"ROL: {rol.upper()}", font=("Roboto", 12, "bold"), text_color="#FFCDD2").pack(side="left", padx=5)
+        
+        ctk.CTkButton(header, text="SALIR", command=self.app.cerrar_sesion, width=80, fg_color="transparent", border_width=1, border_color="white", hover_color=Theme.RED_HOVER).pack(side="right", padx=20)
 
-        botones = {
-            "AGREGAR PEDIDO": AddOrderFrame,
-            "VER PEDIDOS": ViewOrdersFrame,
-            "ACTUALIZAR PEDIDO": UpdateOrderFrame,
-            "ELIMINAR PEDIDO": DeleteOrderFrame,
-        }
+        
+        grid_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        grid_frame.pack(fill="both", expand=True, padx=40, pady=40)
+        
+        grid_frame.grid_columnconfigure(0, weight=1)
+        grid_frame.grid_columnconfigure(1, weight=1)
 
-        for texto, frame_class in botones.items():
+
+        opciones = [
+            ("NUEVO PEDIDO", "➕", AddOrderFrame, ["admin", "mesero"]),
+            ("VER PEDIDOS / ESTADO", "📋", ViewOrdersFrame, ["admin", "mesero"]),
+            ("COCINA / COMANDAS", "👨‍🍳", KitchenFrame, ["admin", "cocina"]),
+            ("ACTUALIZAR PEDIDO", "✏️", UpdateOrderFrame, ["admin"]),
+            ("ELIMINAR PEDIDO", "🗑️", DeleteOrderFrame, ["admin"]),
+        ]
+
+        row, col = 0, 0
+        botones_creados = 0
+
+        for texto, icon, frame_class, roles_permitidos in opciones:
+            permiso = False
             
-            if (texto == "ACTUALIZAR PEDIDO" or texto == "ELIMINAR PEDIDO") and usuario_rol != "admin":
-                continue
+            # Lógica de permisos
+            if "admin" in roles_permitidos and rol == "admin":
+                permiso = True
+            elif rol in roles_permitidos:
+                permiso = True
+            
+            # Excepciones lógicas
+            if rol == "mesero" and frame_class == KitchenFrame: permiso = False
+            if rol == "cocina" and frame_class != KitchenFrame: permiso = False
 
-            btn = ctk.CTkButton(
-                frame_botones, 
-                text=texto, 
-                command=lambda fc=frame_class: self.app.show_frame(fc),
-                height=50, 
-                font=FONT_BOTON, 
-                fg_color=COLOR_CAMPO_GRIS,
-                hover_color="#DCDCDC",
-                text_color=COLOR_TEXTO
-            )
-            btn.pack(fill="x", pady=8)
+            if permiso:
+                self.crear_boton_menu(grid_frame, texto, icon, frame_class, row, col)
+                botones_creados += 1
+                col += 1
+                if col > 1:
+                    col = 0
+                    row += 1
         
-        btn_logout = ctk.CTkButton(
-            frame_botones, 
-            text="CERRAR SESIÓN",
-            command=self.app.cerrar_sesion,
-            height=50, 
-            font=FONT_BOTON, 
-            fg_color=COLOR_BOTON_ROSA,
-            hover_color="#D32F2F",
-            text_color=COLOR_TEXTO_BLANCO
+        if botones_creados == 0:
+            ctk.CTkLabel(grid_frame, text=f"No tienes permisos asignados.\nRol detectado: '{rol}'", font=Theme.FONT_SUBTITLE, text_color="gray").pack(pady=50)
+
+    def crear_boton_menu(self, parent, text, icon, frame_class, r, c):
+        btn = ctk.CTkButton(
+            parent,
+            text=f"{icon}\n\n{text}",
+            command=lambda: self.app.show_frame(frame_class),
+            font=("Roboto", 18, "bold"),
+            width=250, height=150,
+            fg_color=Theme.BG_CARD,
+            text_color=Theme.TEXT_DARK,
+            hover_color=Theme.GRAY_LIGHT,
+            corner_radius=15,
+            border_width=1,
+            border_color=Theme.GRAY_LIGHT
         )
-        btn_logout.pack(fill="x", pady=8, side="bottom")
+        btn.grid(row=r, column=c, padx=20, pady=20, sticky="nsew")
 
 
-# (MODIFICADO) Ahora es un CTkScrollableFrame
-class AddOrderFrame(ctk.CTkScrollableFrame):
+# OTRAS VISTAS (ADD, KITCHEN, VIEW, DELETE, UPDATE)
+# AGREGAR PEDIDO
+class AddOrderFrame(BaseScrollablePage):
     def __init__(self, master, app_instance, pedido_id_a_editar=None):
-        super().__init__(master, fg_color="white")
+        titulo = "EDITAR PEDIDO" if pedido_id_a_editar else "NUEVO PEDIDO"
+        super().__init__(master, title_text=titulo)
         self.app = app_instance
-        self.menu_list = restaurante.get_menu()
-        self.item_widgets = []
-        
         self.pedido_id = pedido_id_a_editar
+        self.item_widgets = []
 
-        frame_top = ctk.CTkFrame(self, fg_color=COLOR_FONDO_ROJO, height=80)
-        frame_top.pack(fill="x", side="top", pady=0)
-        if self.app.logo_image:
-            logo_pequeno = ctk.CTkImage(
-                light_image=self.app.logo_image.cget("light_image"),
-                size=(100, 100) 
-            )
-            logo_label = ctk.CTkLabel(frame_top, image=logo_pequeno, text="")
-            logo_label.pack(pady=5)
-
-        content_frame = ctk.CTkFrame(self, fg_color="white")
-        content_frame.pack(fill="both", expand=True, padx=200, pady=10) 
-
+        # Formulario Datos Cliente
+        form_frame = ctk.CTkFrame(self.scroll_content, fg_color=Theme.BG_CARD, corner_radius=10)
+        form_frame.pack(fill="x", pady=10)
         
-        titulo = "EDITAR PEDIDO" if self.pedido_id else "NUEVO PEDIDO"
-        title_label = ctk.CTkLabel(content_frame, text=titulo, 
-                                   font=FONT_TITULO,
-                                   text_color=COLOR_TEXTO)
-        title_label.pack(pady=10)
-
-        self.entry_cliente = ctk.CTkEntry(content_frame, placeholder_text="Nombre Cliente:",
-                                          height=45, font=FONT_TEXTO)
-        self.entry_cliente.pack(pady=5, fill="x")
+        ctk.CTkLabel(form_frame, text="Datos del Cliente", font=Theme.FONT_BUTTON, text_color=Theme.RED_PRIMARY).pack(anchor="w", padx=20, pady=(15,5))
         
-        self.entry_mesa = ctk.CTkEntry(content_frame, placeholder_text="Mesa:",
-                                       height=45, font=FONT_TEXTO)
-        self.entry_mesa.pack(pady=5, fill="x")
+        self.entry_cliente = ctk.CTkEntry(form_frame, placeholder_text="Nombre del Cliente", height=40, font=Theme.FONT_TEXT)
+        self.entry_cliente.pack(fill="x", padx=20, pady=5)
         
-        # (MODIFICADO) Ya no es un "ScrollableFrame", es un CTkFrame normal.
-        # La página entera (la clase) se encarga de deslizar.
-        # También se quitó el 'height=400' para que muestre todos los items.
-        menu_scroll_frame = ctk.CTkFrame(content_frame, fg_color=COLOR_CAMPO_GRIS)
-        menu_scroll_frame.pack(fill="x", expand=True, pady=10)
+        self.entry_mesa = ctk.CTkEntry(form_frame, placeholder_text="Número de Mesa", height=40, font=Theme.FONT_TEXT)
+        self.entry_mesa.pack(fill="x", padx=20, pady=(5, 20))
+
+        # Menú de Platillos
+        ctk.CTkLabel(self.scroll_content, text="Selección de Platillos", font=Theme.FONT_SUBTITLE, text_color=Theme.TEXT_DARK).pack(anchor="w", pady=(20, 10))
         
-        current_category = ""
+        menu_list = restaurante.get_menu()
+        current_cat = ""
         
-        for item in self.menu_list:
-            # (Lógica de categorías sin cambios)
-            is_gordita = "Gordita" in item["nombre"] and current_category != "Gorditas"
-            is_burro = "Burro" in item["nombre"] and current_category != "Burros"
-            is_kilo = "kg" in item["nombre"] and current_category != "Kilo"
-            is_extra = not ("Gordita" in item["nombre"] or "Burro" in item["nombre"] or "kg" in item["nombre"]) and current_category != "Extras"
+        for item in menu_list:
+            cat = self.detectar_categoria(item["nombre"])
+            if cat != current_cat:
+                current_cat = cat
+                ctk.CTkLabel(self.scroll_content, text=cat, font=("Roboto", 16, "bold"), text_color="gray").pack(anchor="w", pady=(15, 5))
 
-            if is_gordita:
-                current_category = "Gorditas"
-                ctk.CTkLabel(menu_scroll_frame, text="--- GORDITAS ---", font=FONT_SUBTITULO).pack(fill="x", pady=(10,2))
-            elif is_burro:
-                current_category = "Burros"
-                ctk.CTkLabel(menu_scroll_frame, text="--- BURROS ---", font=FONT_SUBTITULO).pack(fill="x", pady=(10,2))
-            elif is_kilo:
-                current_category = "Kilo"
-                ctk.CTkLabel(menu_scroll_frame, text="--- POR KILO ---", font=FONT_SUBTITULO).pack(fill="x", pady=(10,2))
-            elif is_extra:
-                current_category = "Extras"
-                ctk.CTkLabel(menu_scroll_frame, text="--- EXTRAS ---", font=FONT_SUBTITULO).pack(fill="x", pady=(10,2))
-
-            row_frame = ctk.CTkFrame(menu_scroll_frame, fg_color="white")
-            row_frame.pack(fill="x", pady=2, padx=5)
-
-            label_text = f"{item['nombre']} (${item['precio']:.2f})"
-            item_label = ctk.CTkLabel(row_frame, text=label_text, anchor="w", text_color=COLOR_TEXTO,
-                                      font=FONT_TEXTO) 
-            item_label.pack(side="left", fill="x", expand=True, padx=5)
+            row = ctk.CTkFrame(self.scroll_content, fg_color=Theme.BG_CARD, corner_radius=8)
+            row.pack(fill="x", pady=2)
             
-            item_entry = ctk.CTkEntry(row_frame, width=80, placeholder_text="0", justify="center",
-                                      height=35, font=FONT_TEXTO) 
-            item_entry.pack(side="right", padx=5)
+            ctk.CTkLabel(row, text=item['nombre'], font=Theme.FONT_TEXT, text_color=Theme.TEXT_DARK).pack(side="left", padx=15, pady=10)
+            ctk.CTkLabel(row, text=f"${item['precio']:.2f}", font=Theme.FONT_TEXT, text_color="gray").pack(side="left", padx=5)
             
-            self.item_widgets.append( (item, item_entry) )
-        # (Fin del frame del menú)
+            entry_cant = ctk.CTkEntry(row, width=60, placeholder_text="0", justify="center")
+            entry_cant.pack(side="right", padx=15, pady=5)
+            
+            self.item_widgets.append((item, entry_cant))
 
-        frame_botones_control = ctk.CTkFrame(content_frame, fg_color="transparent")
-        frame_botones_control.pack(pady=5, fill="x")
+        # Botones de Acción
+        btn_frame = ctk.CTkFrame(self.scroll_content, fg_color="transparent")
+        btn_frame.pack(fill="x", pady=30)
 
-       
-        btn_texto = "ACTUALIZAR PEDIDO" if self.pedido_id else "GUARDAR PEDIDO"
-        btn_guardar = ctk.CTkButton(frame_botones_control, text=btn_texto, 
-                                    command=self.guardar_o_actualizar_pedido, 
-                                    height=50, font=FONT_BOTON) 
-        btn_guardar.pack(side="left", expand=True, padx=5)
+        texto_btn = "ACTUALIZAR" if self.pedido_id else "GUARDAR ORDEN"
+        ctk.CTkButton(btn_frame, text=texto_btn, command=self.guardar, height=50, font=Theme.FONT_BUTTON, fg_color=Theme.RED_PRIMARY, hover_color=Theme.RED_HOVER).pack(side="left", fill="x", expand=True, padx=(0, 10))
+        ctk.CTkButton(btn_frame, text="CANCELAR", command=lambda: self.app.show_frame(MainFrame), height=50, font=Theme.FONT_BUTTON, fg_color="gray", hover_color="#616161").pack(side="right", fill="x", expand=True, padx=(10, 0))
 
-        btn_cancelar = ctk.CTkButton(frame_botones_control, text="CANCELAR", 
-                                     command=lambda: self.app.show_frame(MainFrame),
-                                     fg_color="gray", height=50, font=FONT_BOTON) 
-        btn_cancelar.pack(side="right", expand=True, padx=5)
-
-        
         if self.pedido_id:
-            self.cargar_datos_pedido()
+            self.cargar_datos()
 
-    # (Lógica de cargar_datos_pedido y guardar_o_actualizar_pedido sin cambios)
-    def cargar_datos_pedido(self):
+    def detectar_categoria(self, nombre):
+        if "Gordita" in nombre: return "GORDITAS"
+        if "Burro" in nombre: return "BURROS"
+        if "kg" in nombre: return "POR KILO"
+        return "BEBIDAS Y EXTRAS"
+
+    def cargar_datos(self):
         pedido = restaurante.get_pedido_por_id(self.pedido_id)
-        if not pedido:
-            messagebox.showerror("Error", "No se encontró el pedido para editar.")
-            self.app.show_frame(MainFrame)
-            return
+        if pedido:
+            self.entry_cliente.insert(0, pedido["nombre_cliente"])
+            self.entry_mesa.insert(0, pedido["mesa"])
+            items_guardados = {i['nombre']: i['cantidad'] for i in pedido.get('items', [])}
+            for item_data, entry in self.item_widgets:
+                if item_data["nombre"] in items_guardados:
+                    entry.insert(0, str(items_guardados[item_data["nombre"]]))
 
-        self.entry_cliente.insert(0, pedido["nombre_cliente"])
-        self.entry_mesa.insert(0, pedido["mesa"])
-        
-        items_guardados_lista = pedido.get('items', [])
-        if not isinstance(items_guardados_lista, list):
-             items_guardados_lista = []
-
-        items_guardados = {item['nombre']: item['cantidad'] for item in items_guardados_lista}
-        
-        for item_data, entry_widget in self.item_widgets:
-            if item_data["nombre"] in items_guardados:
-                cantidad = items_guardados[item_data["nombre"]]
-                entry_widget.insert(0, str(cantidad))
-
-    def guardar_o_actualizar_pedido(self):
+    def guardar(self):
         cliente = self.entry_cliente.get().strip()
         mesa = self.entry_mesa.get().strip()
-        
         if not cliente or not mesa:
-            messagebox.showerror("Error", "Cliente y Mesa son requeridos.")
+            messagebox.showerror("Error", "Faltan datos del cliente o mesa.")
             return
 
-        items_pedido_actual = []
+        items_final = []
         total = 0
+        for item, entry in self.item_widgets:
+            val = entry.get().strip()
+            if val and val != "0":
+                try:
+                    cant = float(val) if "kg" in item["nombre"] else int(val)
+                    if cant > 0:
+                        sub = cant * item["precio"]
+                        total += sub
+                        items_final.append({
+                            "nombre": item["nombre"], "cantidad": cant, "precio_unitario": item["precio"], "subtotal": sub
+                        })
+                except ValueError:
+                    pass
 
-        for item_data, entry_widget in self.item_widgets:
-            cantidad_str = entry_widget.get().strip()
-
-            if not cantidad_str or cantidad_str == "0":
-                continue 
-
-            try:
-                if "kg" in item_data["nombre"].lower():
-                    cantidad = float(cantidad_str)
-                else:
-                    cantidad = int(cantidad_str)
-                
-                if cantidad < 0:
-                    messagebox.showerror("Error", f"Cantidad negativa no válida para '{item_data['nombre']}'")
-                    return
-
-                subtotal = cantidad * item_data["precio"]
-                total += subtotal
-                
-                items_pedido_actual.append({
-                    "nombre": item_data["nombre"],
-                    "cantidad": cantidad,
-                    "precio_unitario": item_data["precio"],
-                    "subtotal": subtotal
-                })
-
-            except ValueError:
-                messagebox.showerror("Error", f"Cantidad inválida para '{item_data['nombre']}'. Debe ser un número.")
-                return
-
-        if not items_pedido_actual:
-            messagebox.showerror("Error", "No se ha agregado ningún ítem al pedido.")
+        if not items_final:
+            messagebox.showerror("Error", "El pedido está vacío.")
             return
 
-        id_usuario = self.app.usuario_data["id_usuario"]
-
+        user_id = self.app.usuario_data["id_usuario"]
+        exito = False
+        
         if self.pedido_id:
-            if restaurante.actualizar_pedido_completo(self.pedido_id, cliente, mesa, items_pedido_actual, total, id_usuario):
-                messagebox.showinfo("Éxito", f"Pedido {self.pedido_id} actualizado. Nuevo Total: ${total:.2f}")
-                self.app.show_frame(MainFrame)
-            else:
-                messagebox.showerror("Error", "No se pudo actualizar el pedido.")
+            exito = restaurante.actualizar_pedido_completo(self.pedido_id, cliente, mesa, items_final, total, user_id)
         else:
-           
-            if restaurante.agregar_pedido(cliente, mesa, items_pedido_actual, total, id_usuario):
-                messagebox.showinfo("Éxito", f"Pedido para '{cliente}' guardado. Total: ${total:.2f}")
-                self.app.show_frame(MainFrame)
-            else:
-                messagebox.showerror("Error", "No se pudo guardar el pedido. Revise la consola.")
+            exito = restaurante.agregar_pedido(cliente, mesa, items_final, total, user_id)
+            
+        if exito:
+            messagebox.showinfo("Éxito", "Operación realizada correctamente.")
+            self.app.show_frame(MainFrame)
+        else:
+            messagebox.showerror("Error", "Hubo un problema con la base de datos.")
 
-
-# (MODIFICADO) Ahora es un CTkScrollableFrame
-class ViewOrdersFrame(ctk.CTkScrollableFrame):
+# VISTA COCINA
+class KitchenFrame(BaseScrollablePage):
     def __init__(self, master, app_instance, **kwargs):
-        super().__init__(master, fg_color="white")
+        super().__init__(master, title_text="COMANDA DE COCINA")
         self.app = app_instance
 
-        frame_top = ctk.CTkFrame(self, fg_color=COLOR_FONDO_ROJO, height=80)
-        frame_top.pack(fill="x", side="top")
-        if self.app.logo_image:
-            logo_pequeno = ctk.CTkImage(
-                light_image=self.app.logo_image.cget("light_image"),
-                size=(100, 100)
-            )
-            logo_label = ctk.CTkLabel(frame_top, image=logo_pequeno, text="")
-            logo_label.pack(pady=5)
+        tool_bar = ctk.CTkFrame(self.scroll_content, fg_color="transparent")
+        tool_bar.pack(fill="x", pady=10)
+        ctk.CTkButton(tool_bar, text="🔄 ACTUALIZAR LISTA", command=self.cargar_pedidos, width=200).pack(side="right")
 
-        title_label = ctk.CTkLabel(self, text="VER PEDIDOS", 
-                                   font=FONT_TITULO,
-                                   text_color=COLOR_TEXTO)
-        title_label.pack(pady=10)
+        self.orders_container = ctk.CTkFrame(self.scroll_content, fg_color="transparent")
+        self.orders_container.pack(fill="both", expand=True)
 
-        btn_regresar = ctk.CTkButton(self, text="REGRESAR", 
-                                     command=lambda: self.app.show_frame(MainFrame),
-                                     height=50, font=FONT_BOTON, 
-                                     width=400, 
-                                     fg_color="gray")
-        btn_regresar.pack(pady=10)
+        self.cargar_pedidos()
 
-        # (MODIFICADO) Ya no es "Scrollable", es un CTkFrame normal.
-        # La página entera (la clase) se encarga de deslizar.
-        scroll_frame = ctk.CTkFrame(self, fg_color=COLOR_CAMPO_GRIS)
-        scroll_frame.pack(fill="both", expand=True, padx=100, pady=10) 
+    def cargar_pedidos(self):
+        for widget in self.orders_container.winfo_children():
+            widget.destroy()
 
-        pedidos = restaurante.mostrar_pedidos()
-        if not pedidos:
-            ctk.CTkLabel(scroll_frame, text="No hay pedidos registrados.", 
-                         font=FONT_SUBTITULO, text_color=COLOR_TEXTO).pack()
+        pedidos = restaurante.mostrar_pedidos_cocina()
         
-        header_text = f"{'ID':<5} {'Cliente':<25} {'Mesa':<10} {'Total':<15}"
-        ctk.CTkLabel(scroll_frame, text=header_text, 
-                     font=FONT_PEDIDO_HEADER,
-                     text_color=COLOR_TEXTO).pack(anchor="w")
+        if not pedidos:
+            ctk.CTkLabel(self.orders_container, text="No hay órdenes pendientes.", font=Theme.FONT_SUBTITLE, text_color="gray").pack(pady=50)
+            return
+
+        self.orders_container.grid_columnconfigure(0, weight=1)
+        self.orders_container.grid_columnconfigure(1, weight=1)
+
+        row, col = 0, 0
+        for p in pedidos:
+            self.crear_tarjeta_comanda(p, row, col)
+            col += 1
+            if col > 1:
+                col = 0
+                row += 1
+
+    def crear_tarjeta_comanda(self, pedido, r, c):
+        color_borde = Theme.STATUS_PENDING if pedido['estado'] == 'Pendiente' else Theme.STATUS_READY
+        
+        card = ctk.CTkFrame(self.orders_container, fg_color=Theme.BG_CARD, border_width=2, border_color=color_borde)
+        card.grid(row=r, column=c, padx=10, pady=10, sticky="nsew")
+
+        header = ctk.CTkFrame(card, fg_color=color_borde, height=30, corner_radius=0)
+        header.pack(fill="x")
+        ctk.CTkLabel(header, text=f"MESA: {pedido['mesa']}", font=("Roboto", 16, "bold"), text_color="white").pack()
+
+        content = ctk.CTkFrame(card, fg_color="transparent")
+        content.pack(padx=10, pady=10, fill="both", expand=True)
+        
+        ctk.CTkLabel(content, text=f"Cliente: {pedido['nombre_cliente']}", font=("Roboto", 12, "bold")).pack(anchor="w")
+        
+        items_txt = ""
+        items_lista = pedido.get('items', [])
+        if isinstance(items_lista, list):
+            for it in items_lista:
+                items_txt += f"• {it['cantidad']} x {it['nombre']}\n"
+        
+        text_box = ctk.CTkTextbox(content, height=100, fg_color="#FAFAFA")
+        text_box.insert("0.0", items_txt)
+        text_box.configure(state="disabled")
+        text_box.pack(fill="x", pady=5)
+
+        if pedido['estado'] == 'Pendiente':
+            ctk.CTkButton(card, text="MARCAR LISTO ✅", 
+                          command=lambda pid=pedido['id_registro']: self.marcar_listo(pid),
+                          fg_color=Theme.STATUS_READY).pack(fill="x", padx=10, pady=10)
+
+    def marcar_listo(self, id_registro):
+        if restaurante.cambiar_estado_pedido(id_registro, "Listo"):
+            self.cargar_pedidos()
+
+# --- VER PEDIDOS ---
+class ViewOrdersFrame(BaseScrollablePage):
+    def __init__(self, master, app_instance, **kwargs):
+        super().__init__(master, title_text="HISTORIAL")
+        self.app = app_instance
+        
+        ctk.CTkButton(self.scroll_content, text="⬅️ REGRESAR", command=lambda: self.app.show_frame(MainFrame), width=120, fg_color="gray").pack(anchor="w", pady=10)
+        ctk.CTkButton(self.scroll_content, text="🔄 REFRESCAR", command=self.cargar_tabla, width=150).pack(anchor="e", pady=(0, 10))
+
+        self.table_frame = ctk.CTkFrame(self.scroll_content, fg_color="transparent")
+        self.table_frame.pack(fill="both", expand=True)
+        self.cargar_tabla()
+
+    def cargar_tabla(self):
+        for w in self.table_frame.winfo_children(): w.destroy()
+        pedidos = restaurante.mostrar_pedidos()
+        
+        headers = ["ID", "MESA", "CLIENTE", "TOTAL", "ESTADO"]
+        h_frame = ctk.CTkFrame(self.table_frame, fg_color=Theme.GRAY_LIGHT)
+        h_frame.pack(fill="x", pady=2)
+        for h in headers:
+            ctk.CTkLabel(h_frame, text=h, font=("Roboto", 12, "bold"), width=100).pack(side="left", padx=5)
 
         for p in pedidos:
-            pedido_frame = ctk.CTkFrame(scroll_frame, fg_color="white", border_width=1, border_color="gray")
+            row = ctk.CTkFrame(self.table_frame, fg_color="white")
+            row.pack(fill="x", pady=2)
+            color_estado = "orange" if p['estado'] == "Pendiente" else "green"
             
-            info_str = f"{p['id_registro']:<5} {p['nombre_cliente']:<25} {p['mesa']:<10} ${p['total']:<14.2f}"
-            fecha_str = p['fecha_hora'].strftime('%Y-%m-%d')
-            
-            nombre_mesero = p.get('usuario', 'Sistema')
-            
-            ctk.CTkLabel(pedido_frame, text=info_str, 
-                         font=FONT_PEDIDO_BODY,
-                         text_color=COLOR_TEXTO).pack(anchor="w", padx=5)
-            
-            ctk.CTkLabel(pedido_frame, text=f"  Fecha: {fecha_str} | Estado: {p['estado']} | Atendió: {nombre_mesero}",
-                         font=FONT_TEXTO, text_color="gray").pack(anchor="w", padx=5)
+            datos = [str(p['id_registro']), str(p['mesa']), p['nombre_cliente'][:15], f"${p['total']:.2f}"]
+            for d in datos:
+                ctk.CTkLabel(row, text=d, width=100, font=Theme.FONT_TEXT).pack(side="left", padx=5)
+            ctk.CTkLabel(row, text=p['estado'], width=100, text_color=color_estado, font=("Roboto", 12, "bold")).pack(side="left", padx=5)
 
-            ctk.CTkLabel(pedido_frame, text="  Items:", 
-                         font=FONT_TEXTO, text_color=COLOR_TEXTO).pack(anchor="w", padx=5)
-            
-            items_str = ""
-            items_lista = p.get("items", [])
-            if not isinstance(items_lista, list): items_lista = []
-
-            for it in items_lista:
-                items_str += f"    {it['cantidad']:<5} x {it['nombre']:<30} (${it['subtotal']:.2f})\n"
-            
-            ctk.CTkLabel(pedido_frame, text=items_str, 
-                         font=FONT_TEXTO, text_color=COLOR_TEXTO, justify="left").pack(anchor="w", padx=5)
-
-            pedido_frame.pack(fill="x", pady=5, padx=5)
-
-
-# (MODIFICADO) Ahora es un CTkScrollableFrame
-class DeleteOrderFrame(ctk.CTkScrollableFrame):
+#ELIMINAR PEDIDO 
+class DeleteOrderFrame(BaseScrollablePage):
     def __init__(self, master, app_instance, **kwargs):
-        super().__init__(master, fg_color="white")
+        super().__init__(master, title_text="ELIMINAR PEDIDO")
         self.app = app_instance
-
-        frame_top = ctk.CTkFrame(self, fg_color=COLOR_FONDO_ROJO, height=80)
-        frame_top.pack(fill="x", side="top")
-        if self.app.logo_image:
-            logo_pequeno = ctk.CTkImage(
-                light_image=self.app.logo_image.cget("light_image"),
-                size=(100, 100)
-            )
-            logo_label = ctk.CTkLabel(frame_top, image=logo_pequeno, text="")
-            logo_label.pack(pady=5)
-
-        title_label = ctk.CTkLabel(self, text="Eliminar Pedidos", 
-                                   font=FONT_TITULO,
-                                   text_color=COLOR_TEXTO)
-        title_label.pack(pady=40)
         
-        ctk.CTkLabel(self, text="Ingrese el ID del pedido a eliminar:", 
-                     font=FONT_SUBTITULO, text_color=COLOR_TEXTO).pack(pady=5)
-        
-        self.entry_id = ctk.CTkEntry(self, placeholder_text="ID de Pedido", width=400,
-                                     height=45, font=FONT_TEXTO) 
+        container = ctk.CTkFrame(self.scroll_content, fg_color="white", corner_radius=10)
+        container.pack(pady=50, padx=100, fill="both")
+
+        ctk.CTkLabel(container, text="ID del Pedido:", font=Theme.FONT_SUBTITLE).pack(pady=20)
+        self.entry_id = ctk.CTkEntry(container, placeholder_text="Ej: 5")
         self.entry_id.pack(pady=10)
 
-        btn_confirmar = ctk.CTkButton(self, text="Confirmar", 
-                                      command=self.confirmar_borrado,
-                                      width=400, height=50, font=FONT_BOTON, 
-                                      fg_color=COLOR_BOTON_ROSA, text_color=COLOR_TEXTO_BLANCO)
-        btn_confirmar.pack(pady=10)
+        ctk.CTkButton(container, text="ELIMINAR", command=self.borrar, fg_color="#D32F2F").pack(pady=20)
+        ctk.CTkButton(container, text="VOLVER", command=lambda: self.app.show_frame(MainFrame), fg_color="gray").pack(pady=10)
 
-        btn_volver = ctk.CTkButton(self, text="Volver", 
-                                   command=lambda: self.app.show_frame(MainFrame),
-                                   width=400, height=50, font=FONT_BOTON, 
-                                   fg_color="gray")
-        btn_volver.pack(pady=5)
-
-    # (Lógica de confirmar_borrado sin cambios)
-    def confirmar_borrado(self):
-        if self.app.usuario_data['rol'] != 'admin':
-            messagebox.showerror("Permiso Denegado", "Solo los administradores pueden eliminar.")
-            return
-            
+    def borrar(self):
         try:
-            id_registro = int(self.entry_id.get())
-        except ValueError:
-            messagebox.showerror("Error", "El ID debe ser un número.")
-            return
-
-        confirmar = messagebox.askyesno(
-            "Confirmar", 
-            f"¿Seguro que desea eliminar el pedido {id_registro}?\n(Se ocultará de la lista pero quedará en la base de datos)."
-        )
-        
-        if confirmar:
-            if restaurante.borrar_pedido(id_registro):
-                messagebox.showinfo("Éxito", f"Pedido {id_registro} eliminado (ocultado).")
+            if restaurante.borrar_pedido(int(self.entry_id.get())):
+                messagebox.showinfo("Éxito", "Eliminado.")
                 self.app.show_frame(MainFrame)
             else:
-                messagebox.showerror("Error", f"No se encontró el pedido {id_registro}.")
+                messagebox.showerror("Error", "No encontrado.")
+        except:
+            messagebox.showerror("Error", "ID inválido.")
 
-
-# (MODIFICADO) Ahora es un CTkScrollableFrame
-class UpdateOrderFrame(ctk.CTkScrollableFrame):
+# ACTUALIZAR PEDIDO 
+class UpdateOrderFrame(BaseScrollablePage):
     def __init__(self, master, app_instance, **kwargs):
-        super().__init__(master, fg_color="white")
+        super().__init__(master, title_text="MODIFICAR PEDIDO")
         self.app = app_instance
-
-        frame_top = ctk.CTkFrame(self, fg_color=COLOR_FONDO_ROJO, height=80)
-        frame_top.pack(fill="x", side="top")
-        if self.app.logo_image:
-            logo_pequeno = ctk.CTkImage(
-                light_image=self.app.logo_image.cget("light_image"),
-                size=(100, 100)
-            )
-            logo_label = ctk.CTkLabel(frame_top, image=logo_pequeno, text="")
-            logo_label.pack(pady=5)
-
-        title_label = ctk.CTkLabel(self, text="Actualizar Pedido", 
-                                   font=FONT_TITULO,
-                                   text_color=COLOR_TEXTO)
-        title_label.pack(pady=40)
         
-        ctk.CTkLabel(self, text="Ingrese el ID del pedido a editar:", 
-                     font=FONT_SUBTITULO, text_color=COLOR_TEXTO).pack(pady=5)
-        
-        self.entry_id = ctk.CTkEntry(self, placeholder_text="ID de Pedido", width=400,
-                                     height=45, font=FONT_TEXTO) 
+        container = ctk.CTkFrame(self.scroll_content, fg_color="white", corner_radius=10)
+        container.pack(pady=50, padx=100, fill="both")
+
+        ctk.CTkLabel(container, text="ID del Pedido:", font=Theme.FONT_SUBTITLE).pack(pady=20)
+        self.entry_id = ctk.CTkEntry(container, placeholder_text="Ej: 10")
         self.entry_id.pack(pady=10)
 
-        btn_cargar = ctk.CTkButton(self, text="Cargar Pedido para Editar", 
-                                      command=self.cargar_para_editar,
-                                      width=400, height=50, font=FONT_BOTON, 
-                                      fg_color=COLOR_BOTON_ROSA, text_color=COLOR_TEXTO_BLANCO)
-        btn_cargar.pack(pady=10)
+        ctk.CTkButton(container, text="BUSCAR", command=self.buscar, fg_color=Theme.RED_PRIMARY).pack(pady=20)
+        ctk.CTkButton(container, text="VOLVER", command=lambda: self.app.show_frame(MainFrame), fg_color="gray").pack(pady=10)
 
-        btn_volver = ctk.CTkButton(self, text="Volver al Menú", 
-                                   command=lambda: self.app.show_frame(MainFrame),
-                                   width=400, height=50, font=FONT_BOTON, 
-                                   fg_color="gray")
-        btn_volver.pack(pady=5)
-
-    # (Lógica de cargar_para_editar sin cambios)
-    def cargar_para_editar(self):
-        if self.app.usuario_data['rol'] != 'admin':
-            messagebox.showerror("Permiso Denegado", "Solo los administradores pueden actualizar.")
-            return
-
+    def buscar(self):
         try:
-            id_registro = int(self.entry_id.get())
-        except ValueError:
-            messagebox.showerror("Error", "El ID debe ser un número.")
-            return
-        
-        pedido = restaurante.get_pedido_por_id(id_registro)
-        if pedido:
-            self.app.show_frame(AddOrderFrame, pedido_id_a_editar=id_registro)
-        else:
-            messagebox.showerror("Error", f"No se encontró ningún pedido activo con el ID {id_registro}.")
+            id_reg = int(self.entry_id.get())
+            if restaurante.get_pedido_por_id(id_reg):
+                self.app.show_frame(AddOrderFrame, pedido_id_a_editar=id_reg)
+            else:
+                messagebox.showerror("Error", "No encontrado.")
+        except:
+            messagebox.showerror("Error", "ID numérico requerido.")

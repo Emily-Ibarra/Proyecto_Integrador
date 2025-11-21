@@ -22,7 +22,7 @@ def configurar_bd():
         cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME} CHARACTER SET utf8mb4")
         cursor.execute(f"USE {DB_NAME}")
 
-        # --- 1. TABLA DE USUARIOS ---
+        # TABLA DE USUARIOS 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS usuarios (
             id_usuario INT AUTO_INCREMENT PRIMARY KEY,
@@ -33,7 +33,8 @@ def configurar_bd():
         )
         """)
 
-        # --- 2. TABLA DE PEDIDOS (RESTAURANTE) ---
+        # --- 2. TABLA DE PEDIDOS (RESTAURANTE) 
+        # Aseguramos que el estado pueda manejar 'Listo' y 'Entregado'
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS restaurante (
             id_registro INT AUTO_INCREMENT PRIMARY KEY,
@@ -49,7 +50,7 @@ def configurar_bd():
         )
         """)
         
-        # --- 3. TABLA DE VENTAS ---
+        # TABLA DE VENTAS 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS ventas (
             id_venta INT AUTO_INCREMENT PRIMARY KEY,
@@ -62,16 +63,7 @@ def configurar_bd():
         )
         """)
 
-        # --- 4. NUEVA TABLA: MESAS ---
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS mesas (
-            id_mesa INT AUTO_INCREMENT PRIMARY KEY,
-            numero_mesa VARCHAR(10) NOT NULL UNIQUE,
-            estado VARCHAR(50) DEFAULT 'disponible'
-        )
-        """)
-
-        # --- 5. NUEVA TABLA: HISTORIAL DE CAMBIOS ---
+        #  HISTORIAL DE CAMBIOS
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS historial_cambios (
             id_historial INT AUTO_INCREMENT PRIMARY KEY,
@@ -84,56 +76,43 @@ def configurar_bd():
         )
         """)
         
-        # --- 6. NUEVA TABLA: CATEGORIAS (Ejemplo de 3ra tabla) ---
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS categorias_menu (
-            id_categoria INT AUTO_INCREMENT PRIMARY KEY,
-            nombre_categoria VARCHAR(100) NOT NULL UNIQUE
-        )
-        """)
-
-        # --- CREACIÓN DE USUARIOS ---
+        # CREACIÓN DE USUARIOS
         
-        # 1. Insertar el administrador
+        # administrador
         cursor.execute("SELECT COUNT(*) FROM usuarios WHERE gmail = 'admin@correo.com'")
         if cursor.fetchone()[0] == 0:
-            admin_user = "Administrador"
-            admin_email = "admin@correo.com"
             admin_pass = hash_password("admin123")
             cursor.execute("""
                 INSERT INTO usuarios (usuario, gmail, password_hash, rol)
                 VALUES (%s, %s, %s, %s)
-            """, (admin_user, admin_email, admin_pass, "admin"))
-            print("✅ Usuario administrador creado: admin@correo.com / admin123")
+            """, ("Administrador", "admin@correo.com", admin_pass, "admin"))
+            print("✅ Admin creado.")
 
-        # 2. (NUEVO) Crear 7 meseros
-        
-        # Contraseña única para todos los meseros de prueba
+        # 2. Usuario COCINA 
+        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE gmail = 'cocina@correo.com'")
+        if cursor.fetchone()[0] == 0:
+            cocina_pass = hash_password("cocina123")
+            cursor.execute("""
+                INSERT INTO usuarios (usuario, gmail, password_hash, rol)
+                VALUES (%s, %s, %s, %s)
+            """, ("Jefe de Cocina", "cocina@correo.com", cocina_pass, "cocina"))
+            print("✅ Usuario Cocina creado: cocina@correo.com / cocina123")
+
+        # 3. Meseros de prueba
         pass_mesero = hash_password("mesero123")
-        
-        meseros = [
-            ("Ana Torres", "ana@correo.com", "mesero"),
-            ("Luis Cruz", "luis@correo.com", "mesero"),
-            ("Maria Solis", "maria@correo.com", "mesero"),
-            ("Carlos Diaz", "carlos@correo.com", "mesero"),
-            ("Sofia Vera", "sofia@correo.com", "mesero"),
-            ("Javier Ruiz", "javier@correo.com", "mesero"),
-            ("Laura Mendi", "laura@correo.com", "mesero")
-        ]
-        
-        query_insertar_mesero = """
-            INSERT INTO usuarios (usuario, gmail, password_hash, rol)
-            VALUES (%s, %s, %s, %s)
-        """
+        meseros = [("Ana Torres", "ana@correo.com", "mesero"), ("Luis Cruz", "luis@correo.com", "mesero")]
         
         for nombre, email, rol in meseros:
             cursor.execute("SELECT COUNT(*) FROM usuarios WHERE gmail = %s", (email,))
             if cursor.fetchone()[0] == 0:
-                cursor.execute(query_insertar_mesero, (nombre, email, pass_mesero, rol))
-                print(f"✅ Mesero creado: {email} / mesero123")
+                cursor.execute("""
+                    INSERT INTO usuarios (usuario, gmail, password_hash, rol)
+                    VALUES (%s, %s, %s, %s)
+                """, (nombre, email, pass_mesero, rol))
+                print(f"✅ Mesero creado: {email}")
 
         conexion.commit()
-        print("✅ Base de datos configurada correctamente.")
+        print("✅ Base de datos actualizada correctamente.")
 
     except Error as e:
         print(f"Error: {e}")
