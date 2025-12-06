@@ -2,124 +2,121 @@ import mysql.connector
 from mysql.connector import Error
 import hashlib
 
-DB_SERVER_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "password": ""  
-}
-DB_NAME = "bd_restaurante"
+# CONFIGURACIÓN
+DB_CONFIG = {"host": "localhost", "user": "root", "password": ""}
+DB_NAME = "restaurante_pro_db"
 
-def hash_password(password):
-    """Encripta la contraseña con SHA-256"""
+def hash_pass(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-def configurar_bd():
-    conexion = None
+def setup():
+    conn = None
     try:
-        conexion = mysql.connector.connect(**DB_SERVER_CONFIG)
-        cursor = conexion.cursor()
-
-        cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME} CHARACTER SET utf8mb4")
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor()
+        
+        cursor.execute(f"DROP DATABASE IF EXISTS {DB_NAME}")
+        cursor.execute(f"CREATE DATABASE {DB_NAME} CHARACTER SET utf8mb4")
         cursor.execute(f"USE {DB_NAME}")
 
-        # TABLA DE USUARIOS 
+        # TABLAS
         cursor.execute("""
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id_usuario INT AUTO_INCREMENT PRIMARY KEY,
-            usuario VARCHAR(100) NOT NULL UNIQUE,
-            gmail VARCHAR(150) NOT NULL UNIQUE,
-            password_hash VARCHAR(255) NOT NULL,
-            rol VARCHAR(50) DEFAULT 'mesero'
-        )
+            CREATE TABLE usuarios (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nombre VARCHAR(100) NOT NULL,
+                email VARCHAR(100) NOT NULL UNIQUE,
+                password VARCHAR(255) NOT NULL,
+                rol VARCHAR(50) NOT NULL
+            )
         """)
 
-        # --- 2. TABLA DE PEDIDOS (RESTAURANTE) 
-        # Aseguramos que el estado pueda manejar 'Listo' y 'Entregado'
         cursor.execute("""
-        CREATE TABLE IF NOT EXISTS restaurante (
-            id_registro INT AUTO_INCREMENT PRIMARY KEY,
-            nombre_cliente VARCHAR(200) NOT NULL,
-            mesa VARCHAR(50),
-            fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
-            items JSON NOT NULL,
-            total DECIMAL(10,2) NOT NULL,
-            estado VARCHAR(50) DEFAULT 'Pendiente',
-            id_usuario INT,
-            esta_activo TINYINT(1) NOT NULL DEFAULT 1, 
-            FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE SET NULL
-        )
-        """)
-        
-        # TABLA DE VENTAS 
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS ventas (
-            id_venta INT AUTO_INCREMENT PRIMARY KEY,
-            id_registro INT NOT NULL,
-            fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
-            total DECIMAL(10,2) NOT NULL,
-            id_usuario INT,
-            FOREIGN KEY (id_registro) REFERENCES restaurante(id_registro) ON DELETE CASCADE,
-            FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE SET NULL
-        )
+            CREATE TABLE menu (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nombre VARCHAR(150) NOT NULL,
+                categoria VARCHAR(50) NOT NULL,
+                precio DECIMAL(10,2) NOT NULL,
+                activo TINYINT DEFAULT 1
+            )
         """)
 
-        #  HISTORIAL DE CAMBIOS
         cursor.execute("""
-        CREATE TABLE IF NOT EXISTS historial_cambios (
-            id_historial INT AUTO_INCREMENT PRIMARY KEY,
-            id_registro INT NOT NULL,
-            id_usuario_modifico INT,
-            fecha_cambio DATETIME DEFAULT CURRENT_TIMESTAMP,
-            descripcion_cambio TEXT,
-            FOREIGN KEY (id_registro) REFERENCES restaurante(id_registro) ON DELETE CASCADE,
-            FOREIGN KEY (id_usuario_modifico) REFERENCES usuarios(id_usuario) ON DELETE SET NULL
-        )
+            CREATE TABLE pedidos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                cliente VARCHAR(100),
+                mesa VARCHAR(50),
+                fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+                total DECIMAL(10,2) DEFAULT 0,
+                estado VARCHAR(50) DEFAULT 'Pendiente',
+                items JSON,
+                id_usuario INT,
+                FOREIGN KEY (id_usuario) REFERENCES usuarios(id)
+            )
         """)
+
+        # USUARIOS
+        admins = [("Administrador", "admin@correo.com", "admin123", "admin")]
+        meseros = [("Mesero Principal", "mesero@correo.com", "mesero123", "mesero")]
+        cocina = [("Jefe Cocina", "cocina@correo.com", "cocina123", "cocina")]
         
-        # CREACIÓN DE USUARIOS
+        for name, mail, pwd, rol in admins + meseros + cocina:
+            cursor.execute("INSERT INTO usuarios (nombre, email, password, rol) VALUES (%s,%s,%s,%s)", 
+                           (name, mail, hash_pass(pwd), rol))
+
+        # --- MENÚ EQUILIBRADO (Ni muy poco, ni demasiado) ---
+        items_iniciales = [
+            # GORDITAS ($21.00)
+            ("Gordita - ASADO ROJO", "Gorditas", 21.00),
+            ("Gordita - ASADO VERDE", "Gorditas", 21.00),
+            ("Gordita - DESHEBRADA ROJA", "Gorditas", 21.00),
+            ("Gordita - DESHEBRADA VERDE", "Gorditas", 21.00),
+            ("Gordita - CHICHARRON PRENSADO", "Gorditas", 21.00),
+            ("Gordita - CHICHARRON DE YESCA", "Gorditas", 21.00),
+            ("Gordita - PICADILLO", "Gorditas", 21.00),
+            ("Gordita - BISTECK", "Gorditas", 21.00),
+            ("Gordita - DISCADA", "Gorditas", 21.00),
+            ("Gordita - RAJAS C/QUESO", "Gorditas", 21.00),
+            ("Gordita - FRIJOLES C/QUESO", "Gorditas", 21.00),
+            ("Gordita - REQUESON", "Gorditas", 21.00),
+            ("Gordita - NOPALITOS", "Gorditas", 21.00),
+            ("Gordita - HUEVO VERDE", "Gorditas", 21.00),
+            
+            # BURRITOS ($36.00)
+            ("Burro - ASADO ROJO", "Burros", 36.00),
+            ("Burro - ASADO VERDE", "Burros", 36.00),
+            ("Burro - DESHEBRADA", "Burros", 36.00),
+            ("Burro - CHICHARRON", "Burros", 36.00),
+            ("Burro - PICADILLO", "Burros", 36.00),
+            ("Burro - BISTECK", "Burros", 36.00),
+            ("Burro - DISCADA", "Burros", 36.00),
+            ("Burro - FRIJOLES C/QUESO", "Burros", 36.00),
+
+            # KILOS Y EXTRAS
+            ("Carnitas (kg)", "Kilos", 320.00),
+            ("Cueritos (kg)", "Kilos", 320.00),
+            ("Costillas (kg)", "Kilos", 345.00),
+            ("Buche (kg)", "Kilos", 320.00),
+            ("Guacamole", "Extras", 35.00),
+            ("Chile c/Queso", "Extras", 35.00),
+            ("Cebolla Asada", "Extras", 25.00),
+
+            # BEBIDAS
+            ("Refresco Lata", "Bebidas", 25.00),
+            ("Refresco 600ml", "Bebidas", 30.00),
+            ("Agua Fresca (Lt)", "Bebidas", 35.00),
+            ("Agua Fresca (Vaso)", "Bebidas", 20.00),
+            ("Café", "Bebidas", 20.00)
+        ]
         
-        # administrador
-        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE gmail = 'admin@correo.com'")
-        if cursor.fetchone()[0] == 0:
-            admin_pass = hash_password("admin123")
-            cursor.execute("""
-                INSERT INTO usuarios (usuario, gmail, password_hash, rol)
-                VALUES (%s, %s, %s, %s)
-            """, ("Administrador", "admin@correo.com", admin_pass, "admin"))
-            print("✅ Admin creado.")
+        cursor.executemany("INSERT INTO menu (nombre, categoria, precio) VALUES (%s, %s, %s)", items_iniciales)
 
-        # 2. Usuario COCINA 
-        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE gmail = 'cocina@correo.com'")
-        if cursor.fetchone()[0] == 0:
-            cocina_pass = hash_password("cocina123")
-            cursor.execute("""
-                INSERT INTO usuarios (usuario, gmail, password_hash, rol)
-                VALUES (%s, %s, %s, %s)
-            """, ("Jefe de Cocina", "cocina@correo.com", cocina_pass, "cocina"))
-            print("✅ Usuario Cocina creado: cocina@correo.com / cocina123")
-
-        # 3. Meseros de prueba
-        pass_mesero = hash_password("mesero123")
-        meseros = [("Ana Torres", "ana@correo.com", "mesero"), ("Luis Cruz", "luis@correo.com", "mesero")]
+        conn.commit()
+        print("✅ Base de datos actualizada con menú completo y equilibrado.")
         
-        for nombre, email, rol in meseros:
-            cursor.execute("SELECT COUNT(*) FROM usuarios WHERE gmail = %s", (email,))
-            if cursor.fetchone()[0] == 0:
-                cursor.execute("""
-                    INSERT INTO usuarios (usuario, gmail, password_hash, rol)
-                    VALUES (%s, %s, %s, %s)
-                """, (nombre, email, pass_mesero, rol))
-                print(f"✅ Mesero creado: {email}")
-
-        conexion.commit()
-        print("✅ Base de datos actualizada correctamente.")
-
     except Error as e:
-        print(f"Error: {e}")
+        print(f"❌ Error: {e}")
     finally:
-        if conexion and conexion.is_connected():
-            cursor.close()
-            conexion.close()
+        if conn and conn.is_connected(): conn.close()
 
 if __name__ == "__main__":
-    configurar_bd()
+    setup()

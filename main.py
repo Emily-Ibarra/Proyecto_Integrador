@@ -1,72 +1,99 @@
 import customtkinter as ctk
-from PIL import Image
-from tkinter import messagebox
-import os
-import customtkinter as ctk
-from views import (
-    LoginFrame, 
-    MainFrame, 
-    AddOrderFrame, 
-    ViewOrdersFrame, 
-    DeleteOrderFrame, 
-    UpdateOrderFrame,
-    KitchenFrame 
-)
+import ui_views as views
+import sys
 
-ctk.set_appearance_mode("Light") 
+# Configuración Global
+ctk.set_appearance_mode("Light")
 ctk.set_default_color_theme("blue")
 
-class App(ctk.CTk):
-    
+class MainApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-
-        self.title("Carnitas & Gorditas EL PUEBLITO - Sistema de Gestión")
         
-        # Configuración de ventana
-        width = self.winfo_screenwidth()
-        height = self.winfo_screenheight()
-        self.geometry(f"{width}x{height}")
-        self.attributes('-zoomed', True)
-        self.resizable(True, True) 
-
-        self.usuario_data = None 
+        self.title("Sistema Restaurante - El Pueblito")
+        self.user = None
+        self.current_frame = None
         
-        # Logo
-        logo_path = "logo.PNG"
-        self.logo_image = None
-        if os.path.exists(logo_path):
-            try:
-                self.logo_image = ctk.CTkImage(
-                    light_image=Image.open(logo_path),
-                    size=(180, 180)
-                )
-            except Exception as e:
-                print(f"Error cargando imagen: {e}")
-
         # Contenedor principal
-        self.container = ctk.CTkFrame(self, fg_color="#F5F5F5")
-        self.container.pack(side="top", fill="both", expand=True)
-
-        self._frame = None
-        self.show_frame(LoginFrame)
-
-    def show_frame(self, frame_class, **kwargs):
-        if self._frame:
-            self._frame.destroy()
+        self.container = ctk.CTkFrame(self)
+        self.container.pack(fill="both", expand=True)
         
-        self._frame = frame_class(master=self.container, app_instance=self, **kwargs) 
-        self._frame.pack(fill="both", expand=True)
+        # Iniciar en Login
+        self.show_view("Login")
 
-    def login_exitoso(self, usuario_data):
-        self.usuario_data = usuario_data
-        self.show_frame(MainFrame)
+    def set_user(self, user_data):
+        self.user = user_data
+        self.show_view("Dashboard")
 
-    def cerrar_sesion(self):
-        if messagebox.askyesno("Salir", "¿Cerrar sesión?"):
-            self.usuario_data = None
-            self.show_frame(LoginFrame)
+    def logout(self):
+        self.user = None
+        self.show_view("Login")
+
+    def show_view(self, view_name, **kwargs):
+        # 1. Destruir vista anterior
+        if self.current_frame:
+            self.current_frame.destroy()
+        
+        # 2. LÓGICA DE PANTALLA
+        w_screen = self.winfo_screenwidth()
+        h_screen = self.winfo_screenheight()
+
+        if view_name == "Login":
+            # --- MODO VENTANA PEQUEÑA (LOGIN) ---
+            w_win, h_win = 500, 650
+            x = (w_screen - w_win) // 2
+            y = (h_screen - h_win) // 2
+            
+            # Restaurar estado normal antes de cambiar tamaño
+            if sys.platform.startswith("linux"):
+                self.attributes('-zoomed', False)
+            else:
+                self.state('normal')
+            
+            self.geometry(f"{w_win}x{h_win}+{x}+{y}")
+            self.resizable(False, False)
+
+        else:
+            # --- MODO PANTALLA COMPLETA (SISTEMA) ---
+            self.resizable(True, True)
+            
+            # IMPORTANTE: Eliminamos la línea self.geometry(...) que forzaba el tamaño exacto.
+            # Solo aplicamos el atributo de maximizado para que el sistema operativo 
+            # ajuste la ventana correctamente sin ocultar la barra de título.
+            
+            self.update_idletasks() # Asegura que Tkinter esté listo para el cambio
+            
+            if sys.platform.startswith("linux"):
+                self.attributes('-zoomed', True)
+            else:
+                try: 
+                    self.state("zoomed")
+                except: 
+                    pass
+
+        # 3. Cargar Vista
+        if view_name == "Login":
+            self.current_frame = views.LoginView(self.container, self)
+        elif view_name == "Dashboard":
+            self.current_frame = views.DashboardView(self.container, self)
+        elif view_name == "Order":
+            order_id = kwargs.get("order_id")
+            self.current_frame = views.OrderView(self.container, self, order_id)
+        elif view_name == "ListOrders":
+            self.current_frame = views.OrdersListView(self.container, self, is_kitchen=False)
+        elif view_name == "Kitchen":
+            self.current_frame = views.OrdersListView(self.container, self, is_kitchen=True)
+        elif view_name == "AdminMenu":
+            self.current_frame = views.AdminMenuView(self.container, self)
+        elif view_name == "AdminUsers":
+            self.current_frame = views.AdminUsersView(self.container, self)
+        
+        self.current_frame.pack(fill="both", expand=True)
+
+    def edit_order(self, pedido_data):
+        self.temp_pedido_edit = pedido_data
+        self.show_view("Order", order_id=pedido_data['id'])
 
 if __name__ == "__main__":
-    app = App()
+    app = MainApp()
     app.mainloop()
